@@ -28,7 +28,7 @@ public class TestClient {
 
             String line = null;
 
-      //Read from the original file and write to the new 
+            //Read from the original file and write to the new 
             //unless content matches data to be removed.
             while ((line = br.readLine()) != null) {
 
@@ -61,7 +61,7 @@ public class TestClient {
 
     public static void main(String args[]) {
         try {
-            s = new Socket("localhost", 5555);
+            s = new Socket("localhost", 5000);
 
             br = new BufferedReader(new InputStreamReader(s.getInputStream()));
             pr = new PrintWriter(s.getOutputStream());
@@ -74,7 +74,8 @@ public class TestClient {
         String strSend = null, strRecv = null;
         boolean f1 = true, f2 = true;
         File direc = new File("C:\\Users\\User\\Desktop\\shared");
-
+        //int SOCKET_PORT = 13267;
+        Socket clientSocket = null;
         try {
             strRecv = br.readLine();
             if (strRecv != null) {
@@ -119,10 +120,12 @@ public class TestClient {
                                 pr.flush();
                                 pr.println(file.length());
                                 pr.flush();
-                            } 
+                            }
                         }
                         pr.println("Hello");
                         pr.flush();
+                        
+                        clientSocket = new Socket("localhost", 3248);
                     } else if (check.equals("not ok")) {
                         System.out.println("Wrong Username or Password");
                     }
@@ -140,54 +143,93 @@ public class TestClient {
 
             pr.println(strSend);
             pr.flush();
-            if(strSend.equals("GetList")){
-                try{
-                    
-                }catch(Exception e){
+            System.out.println("baicha asi");
+            if (strSend.equals("GetList")) {
+                try {
+                    System.out.println("List of files");
+                    System.out.println("fileName    Size     users");
+                    while ((strRecv = br.readLine()) != null) {
+                        if (strRecv.equals("hello")) {
+                            break;
+                        }
+                        System.out.println(strRecv);
+
+                    }
+
+                } catch (Exception e) {
                     System.out.println("Could not get list");
                 }
-            }
-            if (strSend.equals("BYE")) {
+                continue;
+
+            } else if (strSend.equals("BYE")) {
                 System.out.println("Client wishes to terminate the connection. Exiting main.");
                 f1 = false;
-            }
-            if (strSend.equals("DL")) {
+                continue;
+            } else if (strSend.equals("DL")) {
+                System.out.println("ekhono baicha asi");
+                //String serverIP = "127.0.0.1";
+                //int serverPort = 3248;
+                String fileOutput = "C:\\Users\\User\\Desktop\\capture1.png";
+
+                byte[] aByte = new byte[1];
+                int bytesRead;
+
+                
+                InputStream is = null;
 
                 try {
-                    strRecv = br.readLine();					//These two lines are used to determine
-                    int filesize = Integer.parseInt(strRecv);		//the size of the receiving file
-                    byte[] contents = new byte[10000];
-
-                    FileOutputStream fos = new FileOutputStream("C:\\Users\\User\\Desktop\\capture1.png");
-                    BufferedOutputStream bos = new BufferedOutputStream(fos);
-                    InputStream is = s.getInputStream();
-
-                    int bytesRead = 0;
-                    int total = 0;			//how many bytes read
-
-                    while (total <= filesize) //loop is continued until received byte=totalfilesize
-                    {
-                        bytesRead = is.read(contents);
-                        total += bytesRead;
-                        bos.write(contents, 0, bytesRead);
-                    }
-                    bos.flush();
-                } catch (Exception e) {
-                    System.err.println("Could not transfer file.");
+                    
+                    is = clientSocket.getInputStream();
+                } catch (IOException ex) {
+                    // Do exception handling
                 }
 
-            }
-            try {
-                strRecv = br.readLine();
-                if (strRecv != null) {
-                    System.out.println("Server says: " + strRecv);
-                } else {
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+                if (is != null) {
+
+                    FileOutputStream fos = null;
+                    BufferedOutputStream bos = null;
+                    try {
+                        fos = new FileOutputStream(fileOutput);
+                        bos = new BufferedOutputStream(fos);
+                        bytesRead = is.read(aByte, 0, aByte.length);
+
+                        do {
+                            baos.write(aByte);
+                            bytesRead = is.read(aByte);
+                        } while (bytesRead != -1);
+
+                        bos.write(baos.toByteArray());
+                        bos.flush();
+                        bos.close();
+                        //clientSocket.close();
+                        //strRecv=br.readLine();
+                        //System.out.println(strRecv);
+                        //String line=br.readLine();
+                        
+                    } catch (IOException ex) {
+                        // Do exception handling
+                    }
+                   
+                    
+                }
+               
+                System.out.println("Client e boisha nai");
+                //continue;
+            } else {
+                try {
+                    strRecv = br.readLine();
+                    if (strRecv != null) {
+                        System.out.println("Server says2: " + strRecv);
+                    } else {
+                        System.err.println("Error in reading from the socket. Exiting main.");
+                        break;
+                    }
+                } catch (Exception e) {
                     System.err.println("Error in reading from the socket. Exiting main.");
                     break;
                 }
-            } catch (Exception e) {
-                System.err.println("Error in reading from the socket. Exiting main.");
-                break;
             }
 
         }
