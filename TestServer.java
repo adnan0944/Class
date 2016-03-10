@@ -11,7 +11,7 @@ public class TestServer {
         int id = 1;
 
         try {
-            ServerSocket ss = new ServerSocket(5555);
+            ServerSocket ss = new ServerSocket(5000);
             System.out.println("Server has been started successfully.");
 
             while (true) {
@@ -34,7 +34,9 @@ class WorkerThread implements Runnable {
     private Socket socket;
     private InputStream is;
     private OutputStream os;
-
+    ServerSocket welcomeSocket = null;
+    Socket connectionSocket = null;
+    
     private int id = 0;
 
     public void removeLineFromFile(String file, String lineToRemove) {
@@ -120,6 +122,7 @@ class WorkerThread implements Runnable {
 
         String str;
         String user = null, pass;
+        String line = null;
         //ArrayList<Data> dataArr=new ArrayList<Data>();
 
         String fileName1 = "C:\\Users\\User\\Desktop\\login.txt";
@@ -131,11 +134,11 @@ class WorkerThread implements Runnable {
                 while (f2) {
                     str = br.readLine();
                     user = str;
-                    System.out.println(user);
+                    // System.out.println(user);
                     pass = br.readLine();
-                    System.out.println(pass);
+                    //System.out.println(pass);
                     FileReader fileReader = new FileReader(fileName1);
-                    String line = null;
+
                     boolean ok = false;
                     String line2 = null;
                     BufferedReader bufferedReader
@@ -185,7 +188,7 @@ class WorkerThread implements Runnable {
                     if (ok) {
                         while ((str = br.readLine()) != null) {
                             c++;
-                            System.out.println(str);
+                            //System.out.println(str);
                             if (str.equals("Hello")) {
                                 break;
                             }
@@ -211,6 +214,8 @@ class WorkerThread implements Runnable {
                             temp = str;
                         }
                         f2 = false;
+                        welcomeSocket = new ServerSocket(3248);
+                        connectionSocket = welcomeSocket.accept();
                         break;
 
                     } else {
@@ -218,55 +223,99 @@ class WorkerThread implements Runnable {
                         pr.flush();
                     }
                 }
-                System.out.println("Contents of Data Array");
-                for (int i = 0; i < Globals.dataSize; i++) {
-                    System.out.print(Globals.dataArr[i].fileName);
-                    System.out.print(Globals.dataArr[i].size);
-                    System.out.println(Globals.dataArr[i].arr);
-                }
-
+                /*System.out.println("Contents of Data Array");
+                 for (int i = 0; i < Globals.dataSize; i++) {
+                 line =null;
+                 System.out.print(Globals.dataArr[i].fileName);
+                 System.out.print(Globals.dataArr[i].size);
+                 System.out.println(Globals.dataArr[i].arr);
+                 }
+                 */
+                String prev=null,garbage=null;
+                System.out.println("mori nai");
+                //if(prev.equals("DL"))garbage=br.readLine();
                 if ((str = br.readLine()) != null) {
+                    System.out.println(str);
+                    System.out.println("Ekhono mori nai");
                     if (str.equals("BYE")) {
                         System.out.println("[" + id + "] says: BYE. Worker thread will terminate now.");
-                        removeLineFromFile(fileName2, user);
+                        removeLineFromFile(fileName2, user); // removing user from active list
+                        for (int i = 0; i < Globals.dataSize; i++) {
+                            Globals.dataArr[i].arr.remove(user);
+                        }
                         f1 = false; // terminate the loop; it will terminate the thread also
                     } else if (str.equals("GetList")) {
-                        
-                        
-                    } else if (str.equals("DL")) {
-                        try {
-                            File file = new File("C:\\Users\\User\\Desktop\\capture.png");
-                            FileInputStream fis = new FileInputStream(file);
-                            BufferedInputStream bis = new BufferedInputStream(fis);
-                            OutputStream os = socket.getOutputStream();
-                            byte[] contents;
-                            long fileLength = file.length();
-                            pr.println(String.valueOf(fileLength));		//These two lines are used
-                            pr.flush();									//to send the file size in bytes.
 
-                            long current = 0;
-
-                            long start = System.nanoTime();
-                            while (current <= fileLength) {
-                                int size = 10000;
-                                if (fileLength - current >= size) {
-                                    current += size;
-                                } else {
-                                    size = (int) (fileLength - current);
-                                    current = fileLength;
-                                }
-                                contents = new byte[size];
-                                bis.read(contents, 0, size);
-                                os.write(contents);
-                                //System.out.println("Sending file ... "+(current*100)/fileLength+"% complete!");
+                        //line.concat(String.valueOf(Globals.dataArr[0].size));
+                        //StringBuilder sb = new StringBuilder();
+                        //sb.append("");
+                        //sb.append(Globals.dataArr[0].size);
+                        for (int i = 0; i < Globals.dataSize; i++) {
+                            line = null;
+                            line = Globals.dataArr[i].fileName;
+                            line = line.concat("  ");
+                            String strI = Integer.toString(Globals.dataArr[i].size);
+                            line = line.concat(strI);
+                            line = line.concat("  ");
+                            //System.out.println(line);
+                            //System.out.println(Globals.dataArr[0].size);
+                            for (String j : Globals.dataArr[i].arr) {
+                                line = line.concat(j);
+                                line = line.concat(" ");
                             }
-                            os.flush();
-                            System.out.println("File sent successfully!");
-                        } catch (Exception e) {
-                            System.err.println("Could not transfer file.");
+                            pr.println(line);
+                            pr.flush();
+                            //pr.println(Globals.dataArr[0].arr);
+                            //pr.flush();
                         }
-                        pr.println("Downloaded.");
+                        pr.println("hello");
                         pr.flush();
+
+                    } else if (str.equals("DL")) {
+                        
+                        BufferedOutputStream outToClient = null;
+                        String fileToSend="C:\\Users\\User\\Desktop\\capture.png";
+                        try {
+                            
+                            outToClient = new BufferedOutputStream(connectionSocket.getOutputStream());
+                        } catch (IOException ex) {
+                            // Do exception handling
+                        }
+                        System.out.println("valo hoiya jao");
+                        if (outToClient != null) {
+                            File myFile = new File(fileToSend);
+                            byte[] mybytearray = new byte[(int) myFile.length()];
+
+                            FileInputStream fis = null;
+
+                            try {
+                                fis = new FileInputStream(myFile);
+                            } catch (FileNotFoundException ex) {
+                                // Do exception handling
+                            }
+                            BufferedInputStream bis = new BufferedInputStream(fis);
+
+                            try {
+                                bis.read(mybytearray, 0, mybytearray.length);
+                                outToClient.write(mybytearray, 0, mybytearray.length);
+                                System.out.println("ei j eikhane ami");
+                                outToClient.flush();
+                                outToClient.close();
+                                //connectionSocket.close();
+                                System.out.println("ei j eikhane ami2");
+                                // File sent, exit the main method
+                                //return;
+                            } catch (IOException ex) {
+                                // Do exception handling
+                            }
+                            
+                        }
+
+                        //pr.println("Downloaded.");
+                        //pr.flush();
+                       //line=br.readLine();
+                       
+                       
 
                     } else {
                         System.out.println("[" + id + "] says: " + str);
@@ -294,5 +343,14 @@ class WorkerThread implements Runnable {
         TestServer.workerThreadCount--;
         System.out.println("Client [" + id + "] is now terminating. No. of worker threads = "
                 + TestServer.workerThreadCount);
+
     }
+
+    private void delay(int p) {
+        int k = 0;
+        while (k < p) {
+            k++;
+        }
+    }
+
 }
